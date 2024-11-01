@@ -3,6 +3,8 @@ import { Request, Response } from "express";
 import { GroupService } from "../services/group.service";
 import protectedRoute from "../security/guard";
 import { Groups } from "../models/group.model";
+import * as jwt from "jsonwebtoken";
+import { Users } from "../models/user.model";
 
 const groupRouter = express.Router();
 
@@ -29,19 +31,34 @@ groupRouter.get("/:id", protectedRoute, async (req: Request, res: Response) => {
   }
 });
 
-groupRouter.post("/", async (req: Request, res: Response) => {
-  const { name, description, genre, userEmails } = req.body;
+groupRouter.post("/", protectedRoute, async (req: Request, res: Response) => {
+  const { name, description, genre } = req.body;
+  const { authorization } = req.headers;
+
+  if (!authorization) {
+    return res.status(401).json({ message: "Token não fornecido" });
+  }
+
+  const token = authorization.split(" ")[1];
 
   try {
+    const decoded = jwt.decode(token) as { email: string };
+    const loggedUserEmail = decoded.email;
+
+    const loggedUser = await Users.findOne({ where: { email: loggedUserEmail } });
+
+    if (!loggedUser) {
+      return res.status(401).json({ message: "Usuário não autorizado" });
+    }
+
     const groupData: Partial<Groups> = { name, description, genre };
-    const group = await GroupService.createGroup(
-      groupData as Groups,
-      userEmails
-    );
-    res.status(201).json(group);
+
+    const group = await GroupService.createGroup(groupData as Groups, loggedUser);
+
+    return res.status(201).json({ group });
   } catch (error) {
     console.error(error);
-    res.status(500).json({ message: "Erro ao criar grupo" });
+    return res.status(500).json({ message: "Erro ao criar grupo" });
   }
 });
 

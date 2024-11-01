@@ -2,7 +2,6 @@ import { InternalException, NotFoundException } from "../exceptions/exceptions";
 import { Groups } from "../models/group.model";
 import { Users } from "../models/user.model";
 import { In } from "typeorm";
-// import { getRepository } from 'typeorm';
 
 export class GroupService {
   static async getAllGroups(): Promise<Groups[]> {
@@ -32,41 +31,17 @@ export class GroupService {
     }
   }
 
-  static async createGroup(
-    groupData: Groups,
-    userEmails: string[]
-  ): Promise<Groups> {
+  static async createGroup(groupData: Groups, loggedUser: Users): Promise<Groups> {
     try {
-      const fixedEmail = "brennon@gmail.com";
-      if (!userEmails.includes(fixedEmail)) {
-        userEmails.push(fixedEmail);
-      }
-
       const group = Groups.create({
         name: groupData.name,
         description: groupData.description,
         genre: groupData.genre,
       });
 
-      const users = await Users.find({
-        where: { email: In(userEmails) },
-      });
-
-      if (users.length !== userEmails.length) {
-        const foundEmails = users.map((user) => user.email);
-        const notFoundEmails = userEmails.filter(
-          (email) => !foundEmails.includes(email)
-        );
-        console.warn(`
-                Os usuários com estes e-mails não foram encontrados: ${notFoundEmails.join(
-                  ", "
-                )}`);
-      }
-
-      group.users = users;
+      group.users = [loggedUser];
 
       const newGroup = await Groups.save(group);
-
       return newGroup;
     } catch (error) {
       console.error(error);

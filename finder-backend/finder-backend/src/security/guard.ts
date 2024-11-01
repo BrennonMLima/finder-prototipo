@@ -1,13 +1,13 @@
 import { NextFunction, Request, Response } from "express";
 import * as jwt from "jsonwebtoken";
 
-interface TokenPayload {
+export interface TokenPayload {
   name: string;
   email: string;
   createdAt: Date;
   id: string;
-  iat?: string;
-  exp: string;
+  iat?: number;
+  exp: number;
 }
 
 const protectedRoute = (req: Request, res: Response, next: NextFunction) => {

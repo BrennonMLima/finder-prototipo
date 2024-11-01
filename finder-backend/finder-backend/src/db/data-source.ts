@@ -5,7 +5,7 @@ export const AppDataSource = new DataSource({
   host: "localhost",
   port: 3306,
   username: "root",
-  password: "Maio@@@0105!",
+  password: "P@ssw0rd",
   database: "finder",
   entities: ["src/models/*.ts"],
   logging: true,

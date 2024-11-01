@@ -11,8 +11,8 @@ export class Groups extends BaseModel {
   @Column()
   description: string;
 
-  @Column()
-  genre: string;
+  @Column("simple-array")
+  genre: string[];
 
   @ManyToMany(() => Users, (user) => user.groups)
   users: Users[];
