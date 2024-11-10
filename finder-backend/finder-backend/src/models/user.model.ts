@@ -1,6 +1,7 @@
 import { Entity, Column, ManyToMany, JoinTable } from "typeorm";
 import { BaseModel } from "./base.model";
 import { Groups } from "./group.model";
+import { Films } from "./film.model";
 
 @Entity()
 export class Users extends BaseModel {
@@ -26,4 +27,18 @@ export class Users extends BaseModel {
         }
     })
     groups: Groups[];
+
+    @ManyToMany(() => Films, film => film.users)
+    @JoinTable({
+        name: "user_films",
+        joinColumn: {
+            name: "user_id",
+            referencedColumnName: "id"
+        },
+        inverseJoinColumn: {
+            name: "film_id",
+            referencedColumnName: "id"
+        }
+    })
+    films: Films[];
 }

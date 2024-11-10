@@ -3,6 +3,7 @@ import publicRouter from "./src/routes/public.router";
 import groupRouter from "./src/routes/group.router";
 import eventRouter from "./src/routes/event.router";
 import userRouter from "./src/routes/user.router";
+import filmRouter from "./src/routes/film.router";
 import { AppDataSource } from "./src/db/data-source";
 import exceptionsMiddleware from "./src/middleware/exceptions.middleware";
 import * as cors from "cors";
@@ -22,6 +23,7 @@ app.use(express.json());
 app.use("/user", userRouter);
 app.use("/group", groupRouter);
 app.use("/event", eventRouter);
+app.use("/films", filmRouter);
 app.use("", publicRouter);
 app.use(exceptionsMiddleware);
 
