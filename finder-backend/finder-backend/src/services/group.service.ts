@@ -1,20 +1,19 @@
 import { InternalException, NotFoundException } from "../exceptions/exceptions";
 import { Groups } from "../models/group.model";
 import { Users } from "../models/user.model";
-import { In } from "typeorm";
 
 export class GroupService {
-  static async getAllGroups(): Promise<Groups[]> {
+  static async getUserGroups(userId: string): Promise<Groups[]> {
     try {
-      const groups = await Groups.find();
-      if (groups.length === 0)
-        throw new NotFoundException("Grupos não encontrados.");
+      const user = await Users.findOneOrFail({
+        where: { id: userId },
+        relations: ["groups"],
+      });
 
-      return groups;
+      return user.groups;
     } catch (error) {
       console.error(error);
-      if (error instanceof NotFoundException) throw error;
-      throw new InternalException("Erro ao consultar tabela de grupos.");
+      throw new InternalException("Erro ao consultar grupos do usuário.");
     }
   }
 
@@ -31,7 +30,10 @@ export class GroupService {
     }
   }
 
-  static async createGroup(groupData: Groups, loggedUser: Users): Promise<Groups> {
+  static async createGroup(
+    groupData: Groups,
+    loggedUser: Users
+  ): Promise<Groups> {
     try {
       const group = Groups.create({
         name: groupData.name,

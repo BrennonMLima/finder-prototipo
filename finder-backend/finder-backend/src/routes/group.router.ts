@@ -8,14 +8,29 @@ import { Users } from "../models/user.model";
 
 const groupRouter = express.Router();
 
-groupRouter.get("/", protectedRoute, async (req: Request, res: Response) => {
+groupRouter.get("/", async (req: Request, res: Response) => {
+  const { authorization } = req.headers;
+
+  if (!authorization) {
+    return res.status(401).json({ message: "Token não fornecido" });
+  }
+
+  const token = authorization.split(" ")[1];
+
   try {
-    const groups = await GroupService.getAllGroups();
-    return res.send({ groups: groups });
+    const decoded = jwt.decode(token) as { email: string };
+    const loggedUserEmail = decoded.email;
+
+    const user = await Users.findOne({ where: { email: loggedUserEmail } });
+
+    if (!user) {
+      return res.status(401).json({ message: "Usuário não autorizado" });
+    }
+    const groups = await GroupService.getUserGroups(user.id);
+    res.json(groups);
   } catch (error) {
-    return res
-      .status(500)
-      .send({ message: "Erro ao consultar tabela de grupos." });
+    console.error(error);
+    res.status(500).json({ message: "Erro ao obter grupos do usuário" });
   }
 });
 
@@ -36,7 +51,7 @@ groupRouter.post("/", protectedRoute, async (req: Request, res: Response) => {
   const { authorization } = req.headers;
 
   if (!authorization) {
-    return res.status(401).json({ message: "Token não fornecido" });
+    return res.status(401).json({ message: "Token nÃ£o fornecido" });
   }
 
   const token = authorization.split(" ")[1];
@@ -45,15 +60,20 @@ groupRouter.post("/", protectedRoute, async (req: Request, res: Response) => {
     const decoded = jwt.decode(token) as { email: string };
     const loggedUserEmail = decoded.email;
 
-    const loggedUser = await Users.findOne({ where: { email: loggedUserEmail } });
+    const loggedUser = await Users.findOne({
+      where: { email: loggedUserEmail },
+    });
 
     if (!loggedUser) {
-      return res.status(401).json({ message: "Usuário não autorizado" });
+      return res.status(401).json({ message: "UsuÃ¡rio nÃ£o autorizado" });
     }
 
     const groupData: Partial<Groups> = { name, description, genre };
 
-    const group = await GroupService.createGroup(groupData as Groups, loggedUser);
+    const group = await GroupService.createGroup(
+      groupData as Groups,
+      loggedUser
+    );
 
     return res.status(201).json({ group });
   } catch (error) {
@@ -69,7 +89,7 @@ groupRouter.delete(
     const { id } = req.params;
     try {
       await GroupService.deleteGroup(id);
-      res.status(202).send({ message: "Grupo excluído com sucesso." });
+      res.status(202).send({ message: "Grupo excluÃ­do com sucesso." });
     } catch (error) {
       return res.status(500).send({ message: "Erro ao excluir grupo." });
     }
@@ -84,7 +104,7 @@ groupRouter.get("/:groupId/users", async (req: Request, res: Response) => {
     res.json(users);
   } catch (error) {
     console.error(error);
-    res.status(500).json({ message: "Erro ao obter usuários do grupo" });
+    res.status(500).json({ message: "Erro ao obter usuÃ¡rios do grupo" });
   }
 });
 

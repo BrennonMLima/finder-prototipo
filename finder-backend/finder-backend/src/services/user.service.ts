@@ -2,9 +2,6 @@ import { UserDTO } from "../dto/user.dto";
 import { InternalException, NotFoundException } from "../exceptions/exceptions";
 import { Users } from "../models/user.model";
 import { SecurityClass } from "../security/security";
-import { In } from "typeorm";
-import { Groups } from "../models/group.model";
-
 export class UserService {
   static async getAllUsers(): Promise<Users[]> {
     try {
@@ -84,19 +81,6 @@ export class UserService {
     }
   }
 
-  static async getUserGroups(userId: string): Promise<Groups[]> {
-    try {
-      const user = await Users.findOneOrFail({
-        where: { id: userId },
-        relations: ["groups"],
-      });
-
-      return user.groups;
-    } catch (error) {
-      console.error(error);
-      throw new InternalException("Erro ao consultar grupos do usuário.");
-    }
-  }
   static async updateUser(
     userId: string,
     userData: Partial<Users>
@@ -112,7 +96,7 @@ export class UserService {
         );
       }
 
-      Object.assign(user, userData); // Atualiza as propriedades do usuário
+      Object.assign(user, userData);
       const updatedUser = await Users.save(user);
 
       return updatedUser;

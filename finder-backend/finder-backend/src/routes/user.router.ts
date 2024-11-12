@@ -93,24 +93,12 @@ userRouter.delete(
     const { id } = req.params;
     try {
       await UserService.deleteUser(id);
-      res.status(202).send({ message: "Usuário excluído com sucesso." });
+      res.status(202).send({ message: "usuário excluÃ­do com sucesso." });
     } catch (error) {
       return res.status(500).send({ message: "Erro ao excluir usuário." });
     }
   }
 );
-
-userRouter.get("/:userId/groups", async (req: Request, res: Response) => {
-  const { userId } = req.params;
-
-  try {
-    const groups = await UserService.getUserGroups(userId);
-    res.json(groups);
-  } catch (error) {
-    console.error(error);
-    res.status(500).json({ message: "Erro ao obter grupos do usuário" });
-  }
-});
 
 userRouter.put("/:id", protectedRoute, async (req: Request, res: Response) => {
   const { id } = req.params;
