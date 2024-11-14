@@ -34,7 +34,7 @@ filmRouter.get("/id", protectedRoute, async(req: Request, res: Response)=>{
 });
 
 filmRouter.post("/", protectedRoute, async (req: Request, res: Response)=>{
-    const { title, description } = req.body;
+    const { id, title, description, isVoted } = req.body;
     const { authorization } = req.headers;
 
     if(!authorization){
@@ -53,7 +53,7 @@ filmRouter.post("/", protectedRoute, async (req: Request, res: Response)=>{
             return res.status(401).json({ message: "Usuário não autorizado" });
         }
 
-        const filmData: Partial<Films> = {title, description};
+        const filmData: Partial<Films> = { id, title, description, isVoted };
 
         const film = await FilmService.addFilm(filmData as Films, loggedUser);
 

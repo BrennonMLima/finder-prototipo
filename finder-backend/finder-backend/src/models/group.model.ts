@@ -1,7 +1,8 @@
-import { Entity, Column, ManyToMany, OneToMany } from "typeorm";
+import { Entity, Column, ManyToMany, OneToMany, JoinTable } from "typeorm";
 import { BaseModel } from "./base.model";
 import { Users } from "./user.model";
 import { Events } from "./event.model";
+import { Genres } from "./genre.model";
 
 @Entity()
 export class Groups extends BaseModel {
@@ -19,4 +20,18 @@ export class Groups extends BaseModel {
 
   @OneToMany(() => Events, (event) => event.group)
   events: Events[];
+
+  @ManyToMany(() => Genres, genre => genre.groups)
+    @JoinTable({
+        name: "group_genres",
+        joinColumn: {
+            name:"group_id",
+            referencedColumnName: "id"
+        },
+        inverseJoinColumn: {
+            name:"genre_id",
+            referencedColumnName:"id"
+        }
+    })
+    genres: Genres[];
 }

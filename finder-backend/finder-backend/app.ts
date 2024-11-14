@@ -7,15 +7,23 @@ import filmRouter from "./src/routes/film.router";
 import { AppDataSource } from "./src/db/data-source";
 import exceptionsMiddleware from "./src/middleware/exceptions.middleware";
 import * as cors from "cors";
+import { seedGenres } from "./src/seeds/genre.seed"
 
-AppDataSource.initialize()
-  .then(() => {
+async function initializeDatabase(){
+
+  async function initializeDatabase() {
+    await AppDataSource.initialize();
     console.log("Banco inicializado!");
-  })
-  .catch((err) => {
+  
+    await seedGenres();
+    console.log("Gêneros seed inseridos com sucesso");
+  }
+  
+  initializeDatabase().catch((err) => {
     console.error("Erro durante a inicialização do banco: ", err);
   });
-
+}
+  
 const app = express();
 
 app.use(cors());

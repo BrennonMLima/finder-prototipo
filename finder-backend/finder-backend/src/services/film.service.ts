@@ -7,7 +7,7 @@ export class FilmService{
         try{
             const films = await Films.find()
             if(films.length === 0)
-                throw new NotFoundException("Filmes não encontrados.")
+                throw new NotFoundException("Filmes não encontrados.");
 
             return films;
         } catch(error){
@@ -33,8 +33,10 @@ export class FilmService{
     static async addFilm(filmData: Films, loggedUser: Users): Promise<Films>{
         try{
             const film = Films.create({
+                id: filmData.id,
                 title: filmData.title,
-                description: filmData.description
+                description: filmData.description,
+                isVoted: filmData.isVoted
             });
 
             film.users = [loggedUser];

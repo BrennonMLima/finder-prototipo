@@ -5,6 +5,8 @@ import protectedRoute from "../security/guard";
 import { Groups } from "../models/group.model";
 import * as jwt from "jsonwebtoken";
 import { Users } from "../models/user.model";
+import { Genres } from "../models/genre.model";
+import { In } from "typeorm";
 
 const groupRouter = express.Router();
 
@@ -47,7 +49,7 @@ groupRouter.get("/:id", protectedRoute, async (req: Request, res: Response) => {
 });
 
 groupRouter.post("/", protectedRoute, async (req: Request, res: Response) => {
-  const { name, description, genre } = req.body;
+  const { name, description, genreIds } = req.body;
   const { authorization } = req.headers;
 
   if (!authorization) {
@@ -68,10 +70,19 @@ groupRouter.post("/", protectedRoute, async (req: Request, res: Response) => {
       return res.status(401).json({ message: "UsuÃ¡rio nÃ£o autorizado" });
     }
 
-    const groupData: Partial<Groups> = { name, description, genre };
+    const genres = await Genres.find({
+      where: { id: In(genreIds)}
+    })
+
+    if(genres.length !== genreIds.length){
+      return res.status(400).json({ message: "Contem um ou mais gêneros inválidos."});
+    }
+
+    const groupData: Partial<Groups> = { name, description };
 
     const group = await GroupService.createGroup(
       groupData as Groups,
+      genreIds,
       loggedUser
     );
 

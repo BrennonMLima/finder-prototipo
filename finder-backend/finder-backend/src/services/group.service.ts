@@ -1,6 +1,8 @@
 import { InternalException, NotFoundException } from "../exceptions/exceptions";
 import { Groups } from "../models/group.model";
 import { Users } from "../models/user.model";
+import { Genres } from "../models/genre.model";
+import { GenreServices } from "./genre.service";
 
 export class GroupService {
   static async getUserGroups(userId: string): Promise<Groups[]> {
@@ -32,13 +34,19 @@ export class GroupService {
 
   static async createGroup(
     groupData: Groups,
+    genreId: number,
     loggedUser: Users
   ): Promise<Groups> {
     try {
+      const genre = await GenreServices.getGenreById(genreId);
+      if(!genre){
+        throw new NotFoundException("Gênero inválido");
+      }
+      //caso de errado apaga a linha 37, 41 a 44
       const group = Groups.create({
         name: groupData.name,
         description: groupData.description,
-        genre: groupData.genre,
+        genres: [genre], //aq tbm, volta pra genre: groupData.genre
       });
 
       group.users = [loggedUser];
