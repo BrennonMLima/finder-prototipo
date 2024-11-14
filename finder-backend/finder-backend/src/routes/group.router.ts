@@ -53,7 +53,7 @@ groupRouter.post("/", protectedRoute, async (req: Request, res: Response) => {
   const { authorization } = req.headers;
 
   if (!authorization) {
-    return res.status(401).json({ message: "Token nÃ£o fornecido" });
+    return res.status(401).json({ message: "Token não fornecido" });
   }
 
   const token = authorization.split(" ")[1];
@@ -67,15 +67,7 @@ groupRouter.post("/", protectedRoute, async (req: Request, res: Response) => {
     });
 
     if (!loggedUser) {
-      return res.status(401).json({ message: "UsuÃ¡rio nÃ£o autorizado" });
-    }
-
-    const genres = await Genres.find({
-      where: { id: In(genreIds)}
-    })
-
-    if(genres.length !== genreIds.length){
-      return res.status(400).json({ message: "Contem um ou mais gêneros inválidos."});
+      return res.status(401).json({ message: "Usuário não autorizado" });
     }
 
     const groupData: Partial<Groups> = { name, description };
@@ -93,19 +85,49 @@ groupRouter.post("/", protectedRoute, async (req: Request, res: Response) => {
   }
 });
 
-groupRouter.delete(
-  "/:id",
-  protectedRoute,
-  async (req: Request, res: Response) => {
-    const { id } = req.params;
-    try {
-      await GroupService.deleteGroup(id);
-      res.status(202).send({ message: "Grupo excluÃ­do com sucesso." });
-    } catch (error) {
-      return res.status(500).send({ message: "Erro ao excluir grupo." });
-    }
+
+groupRouter.put("/:id", protectedRoute, async (req: Request, res: Response) => {
+  const { id } = req.params;
+  const { name, description, genreId } = req.body;
+
+  try {
+    const groupData: Partial<Groups> = { name, description };
+    const updatedGroup = await GroupService.updateGroup(id, groupData, genreId);
+
+    return res.status(200).json({ group: updatedGroup });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: "Erro ao atualizar grupo" });
   }
-);
+});
+
+groupRouter.delete("/:id/leave", protectedRoute, async (req: Request, res: Response) => {
+  const { id } = req.params;
+  const { authorization } = req.headers;
+
+  if (!authorization) {
+    return res.status(401).json({ message: "Token não fornecido" });
+  }
+
+  const token = authorization.split(" ")[1];
+
+  try {
+    const decoded = jwt.decode(token) as { email: string };
+    const loggedUserEmail = decoded.email;
+
+    const user = await Users.findOne({ where: { email: loggedUserEmail } });
+
+    if (!user) {
+      return res.status(401).json({ message: "Usuário não autorizado" });
+    }
+
+    await GroupService.deleteGroup(id, user.id);
+    res.status(202).send({ message: "Usuário saiu do grupo com sucesso." });
+  } catch (error) {
+    console.error(error);
+    return res.status(500).send({ message: "Erro ao sair do grupo." });
+  }
+});
 
 groupRouter.get("/:groupId/users", async (req: Request, res: Response) => {
   const { groupId } = req.params;
@@ -115,7 +137,7 @@ groupRouter.get("/:groupId/users", async (req: Request, res: Response) => {
     res.json(users);
   } catch (error) {
     console.error(error);
-    res.status(500).json({ message: "Erro ao obter usuÃ¡rios do grupo" });
+    res.status(500).json({ message: "Erro ao obter usuários do grupo" });
   }
 });
 
