@@ -35,7 +35,11 @@ export class FilmService{
 
     static async addFilm(filmData: Films, loggedUser: Users, isVoted: boolean, genreIds: number[]): Promise<Films>{
         try{
-            if (!Array.isArray(genreIds) || genreIds.length === 0) { throw new Error("genreIds deve ser um array não vazio"); }
+            console.log(genreIds);
+            if (!Array.isArray(genreIds) || genreIds.length === 0) { 
+                throw new Error("genreIds deve ser um array não vazio"); 
+
+            }
             const genres = await Genres.findBy({
                 id: In(genreIds),
             });
