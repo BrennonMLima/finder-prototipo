@@ -230,4 +230,34 @@ groupRouter.get(
   }
 );
 
+groupRouter.get(
+  "/:id/ranking",
+  protectedRoute,
+  async (req: Request, res: Response) => {
+    const { id } = req.params;
+
+    try {
+      const rankedFilms = await GroupService.generateFilmRanking(id);
+
+      res.status(200).json({
+        message: "Ranking gerado com sucesso.",
+        ranking: rankedFilms.map(({ film, votes }) => ({
+          id: film.id,
+          title: film.title,
+          description: film.description,
+          votes: votes,
+          genres: film.genres,
+        })),
+      });
+    } catch (error) {
+      console.error(error);
+      if (error instanceof NotFoundException) {
+        res.status(404).json({ message: error.message });
+      } else {
+        res.status(500).json({ message: "Erro ao gerar ranking de filmes." });
+      }
+    }
+  }
+);
+
 export default groupRouter;

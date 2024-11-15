@@ -6,6 +6,8 @@ import { GenreServices } from "./genre.service";
 import jwt from "jsonwebtoken";
 import { randomBytes } from "crypto";
 import { In } from "typeorm";
+import { UserFilms } from "../models/userfilm.model";
+import { Films } from "../models/film.model";
 
 interface InviteCode {
   code: string;
@@ -59,7 +61,7 @@ export class GroupService {
       const group = Groups.create({
         name: groupData.name,
         description: groupData.description,
-        genres: genres, // Adiciona os gêneros encontrados
+        genres: genres,
       });
 
       group.users = [loggedUser];
@@ -213,6 +215,64 @@ export class GroupService {
       await this.addUser(groupId, userId);
     } else {
       throw new NotFoundException("Codigo de convite inválido ou expirado.");
+    }
+  }
+
+  static async generateFilmRanking(
+    groupId: string
+  ): Promise<{ film: Films; votes: number }[]> {
+    try {
+      // Passo 1: Obter os gêneros do grupo
+      const group = await Groups.findOne({
+        where: { id: groupId },
+        relations: ["genres", "users"],
+      });
+
+      if (!group) throw new NotFoundException("Grupo não encontrado.");
+
+      const groupGenres = group.genres.map((genre) => genre.id);
+
+      // Passo 2: Obter os filmes votados pelos membros do grupo
+      const userIds = group.users.map((user) => user.id);
+
+      const userFilms = await UserFilms.find({
+        where: { user: In(userIds), isVoted: true },
+        relations: ["film", "film.genres"],
+      });
+
+      if (userFilms.length === 0) {
+        throw new NotFoundException(
+          "Nenhum filme votado pelos membros do grupo."
+        );
+      }
+
+      // Passo 3: Filtrar e agrupar os filmes por gêneros do grupo
+      const filteredFilms = userFilms.filter((userFilm) =>
+        userFilm.film.genres.some((genre) => groupGenres.includes(genre.id))
+      );
+
+      // Passo 4: Contar os votos de cada filme
+      const voteCounts: Map<string, { film: Films; votes: number }> = new Map();
+
+      filteredFilms.forEach((userFilm) => {
+        const filmId = userFilm.film.id;
+        if (!voteCounts.has(filmId)) {
+          voteCounts.set(filmId, { film: userFilm.film, votes: 0 });
+        }
+        const current = voteCounts.get(filmId)!;
+        current.votes += 1;
+      });
+
+      // Passo 5: Criar um array com os 10 filmes mais votados
+      const rankedFilms = Array.from(voteCounts.values())
+        .sort((a, b) => b.votes - a.votes) // Ordenar por votos em ordem decrescente
+        .slice(0, 10); // Pegar os 10 primeiros
+
+      return rankedFilms;
+    } catch (error) {
+      console.error(error);
+      if (error instanceof NotFoundException) throw error;
+      throw new InternalException("Erro ao gerar o ranking de filmes.");
     }
   }
 }
