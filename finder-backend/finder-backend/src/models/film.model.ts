@@ -1,6 +1,7 @@
-import { Entity, Column, ManyToMany, PrimaryColumn, BaseEntity, JoinTable } from "typeorm";
+import { Entity, Column, ManyToMany, PrimaryColumn, BaseEntity, JoinTable, OneToMany } from "typeorm";
 import { Users } from "./user.model";
 import { Genres } from "./genre.model";
+import { UserFilms } from "./userfilm.model";
 
 @Entity()
 export class Films extends BaseEntity{
@@ -14,23 +15,22 @@ export class Films extends BaseEntity{
     @Column({ type: 'varchar', length: 500 })
     description:string;
 
-    @Column()
-    isVoted: boolean;
-
-    @ManyToMany(() => Users, (user) => user.films)
-    users: Users[];
-
+    @OneToMany(() => UserFilms, userFilms => userFilms.film)
+    userFilms: UserFilms[];
+    
+    // @ManyToMany(() => Users, (user) => user.films)
+    // users: Users[];
     @ManyToMany(() => Genres, genre => genre.films)
     @JoinTable({
         name: "film_genres",
         joinColumn: {
             name:"film_id",
-            referencedColumnName: "id"
+            referencedColumnName: "id",
         },
         inverseJoinColumn: {
             name:"genre_id",
             referencedColumnName:"id"
-        }
+        },
     })
     genres: Genres[];
 

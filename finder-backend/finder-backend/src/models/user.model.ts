@@ -1,7 +1,8 @@
-import { Entity, Column, ManyToMany, JoinTable } from "typeorm";
+import { Entity, Column, ManyToMany, JoinTable, OneToMany,  } from "typeorm";
 import { BaseModel } from "./base.model";
 import { Groups } from "./group.model";
 import { Films } from "./film.model";
+import { UserFilms } from "./userfilm.model";
 
 @Entity()
 export class Users extends BaseModel {
@@ -13,6 +14,9 @@ export class Users extends BaseModel {
 
     @Column()
     password: string;
+
+    @OneToMany(() => UserFilms, userFilms => userFilms.user)
+    userFilms: UserFilms[];
 
     @ManyToMany(() => Groups, group => group.users)
     @JoinTable({
@@ -28,17 +32,17 @@ export class Users extends BaseModel {
     })
     groups: Groups[];
 
-    @ManyToMany(() => Films, film => film.users)
-    @JoinTable({
-        name: "user_films",
-        joinColumn: {
-            name: "user_id",
-            referencedColumnName: "id"
-        },
-        inverseJoinColumn: {
-            name: "film_id",
-            referencedColumnName: "id"
-        }
-    })
-    films: Films[];
+    // @ManyToMany(() => Films, film => film.users)
+    // @JoinTable({
+    //     name: "user_films",
+    //     joinColumn: {
+    //         name: "user_id",
+    //         referencedColumnName: "id"
+    //     },
+    //     inverseJoinColumn: {
+    //         name: "film_id",
+    //         referencedColumnName: "id"
+    //     }
+    // })
+    // films: Films[];
 }

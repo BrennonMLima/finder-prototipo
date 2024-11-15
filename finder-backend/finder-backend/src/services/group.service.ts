@@ -53,7 +53,7 @@ export class GroupService {
       const genres = await Genres.findBy({
         id: In(genreIds)
       });
-  
+      console.log("Genres encontrados:", genres);
       if (genres.length !== genreIds.length) {
         throw new NotFoundException("Um ou mais gêneros são inválidos.");
       }

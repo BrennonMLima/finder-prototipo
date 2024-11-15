@@ -1,6 +1,9 @@
+import { getRepository, In } from "typeorm";
 import { InternalException, NotFoundException } from "../exceptions/exceptions";
 import { Films } from "../models/film.model";
 import { Users } from "../models/user.model";
+import { UserFilms } from "../models/userfilm.model";
+import { Genres } from '../models/genre.model';
 
 export class FilmService{
     static async getAllFilms(): Promise<Films[]>{
@@ -30,18 +33,34 @@ export class FilmService{
         }
     }    
 
-    static async addFilm(filmData: Films, loggedUser: Users): Promise<Films>{
+    static async addFilm(filmData: Films, loggedUser: Users, isVoted: boolean, genreIds: number[]): Promise<Films>{
         try{
+            if (!Array.isArray(genreIds) || genreIds.length === 0) { throw new Error("genreIds deve ser um array não vazio"); }
+            const genres = await Genres.findBy({
+                id: In(genreIds),
+            });
+
+            if(!Array.isArray(genres) || genres.length === 0){
+                throw new Error("Gêneros não encontrados");
+            }
+
             const film = Films.create({
                 id: filmData.id,
                 title: filmData.title,
                 description: filmData.description,
-                isVoted: filmData.isVoted
+                genres: genres
             });
 
-            film.users = [loggedUser];
-
             const newFilm = await Films.save(film);
+
+            const userFilm = UserFilms.create({
+                user:loggedUser,
+                watched : false,
+                film: newFilm,
+                isVoted: isVoted
+            });
+            await UserFilms.save(userFilm);
+
             return newFilm
         }  catch(error){
             console.error(error);
