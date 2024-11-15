@@ -5,6 +5,7 @@ import { Genres } from "../models/genre.model";
 import { GenreServices } from "./genre.service";
 import jwt from 'jsonwebtoken';
 import { randomBytes } from 'crypto';
+import { In } from "typeorm";
 
 interface InviteCode {
   code: string;
@@ -45,45 +46,49 @@ export class GroupService {
 
   static async createGroup(
     groupData: Groups,
-    genreId: number,
+    genreIds: number[],
     loggedUser: Users
   ): Promise<Groups> {
     try {
-      const genre = await GenreServices.getGenreById(genreId);
-      if(!genre){
-        throw new NotFoundException("Gênero inválido");
+      const genres = await Genres.findBy({
+        id: In(genreIds)
+      });
+  
+      if (genres.length !== genreIds.length) {
+        throw new NotFoundException("Um ou mais gêneros são inválidos.");
       }
-      //caso de errado apaga a linha 37, 41 a 44
+  
       const group = Groups.create({
         name: groupData.name,
         description: groupData.description,
-        genres: [genre], //aq tbm, volta pra genre: groupData.genre
+        genres: genres, // Adiciona os gêneros encontrados
       });
-
+  
       group.users = [loggedUser];
-
+  
       const newGroup = await Groups.save(group);
       return newGroup;
     } catch (error) {
       console.error(error);
-      throw new InternalException(`Erro ao criar grupo`);
+      throw new InternalException("Erro ao criar grupo");
     }
   }
 
-  static async deleteGroup(groupId: string): Promise<void> {
+  static async deleteGroup(groupId: string, userId: string): Promise<void> {
     try {
-      const group = await Groups.findOneOrFail({
+      const group = await Groups.findOne({
         where: { id: groupId },
-        relations: ["users"],
+        relations: ["users"]
       });
-
-      group.users = [];
+  
+      if (!group) throw new NotFoundException("Grupo não encontrado.");
+  
+      group.users = group.users.filter(user => user.id !== userId);
+  
       await group.save();
-
-      await Groups.delete({ id: groupId });
     } catch (error) {
       console.error(error);
-      throw new InternalException(`Erro ao deletar grupo: ${error.message}`);
+      throw new InternalException("Erro ao sair do grupo.");
     }
   }
 
@@ -100,6 +105,34 @@ export class GroupService {
     } catch (error) {
       console.error(error);
       throw new InternalException("Erro ao consultar usuários do grupo.");
+    }
+  }
+  static async updateGroup(
+    groupId: string,
+    groupData: Partial<Groups>,
+    genreId: number
+  ): Promise<Groups> {
+    try {
+      const group = await Groups.findOne({
+        where: { id: groupId },
+        relations: ["genres"]
+      });
+  
+      if (!group) throw new NotFoundException("Grupo não encontrado.");
+  
+      if (genreId) {
+        const genre = await GenreServices.getGenreById(genreId);
+        if (!genre) throw new NotFoundException("Gênero inválido.");
+        group.genres = [genre];
+      }
+  
+      Object.assign(group, groupData);
+  
+      const updatedGroup = await Groups.save(group);
+      return updatedGroup;
+    } catch (error) {
+      console.error(error);
+      throw new InternalException("Erro ao atualizar o grupo.");
     }
   }
 

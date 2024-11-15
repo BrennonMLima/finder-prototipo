@@ -11,7 +11,7 @@ export class Films extends BaseEntity{
     @Column()
     title:string;
 
-    @Column()
+    @Column({ type: 'varchar', length: 500 })
     description:string;
 
     @Column()
