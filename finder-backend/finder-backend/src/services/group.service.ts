@@ -3,8 +3,8 @@ import { Groups } from "../models/group.model";
 import { Users } from "../models/user.model";
 import { Genres } from "../models/genre.model";
 import { GenreServices } from "./genre.service";
-import jwt from 'jsonwebtoken';
-import { randomBytes } from 'crypto';
+import jwt from "jsonwebtoken";
+import { randomBytes } from "crypto";
 import { In } from "typeorm";
 
 interface InviteCode {
@@ -12,11 +12,9 @@ interface InviteCode {
   expiresAt: number;
 }
 
-const inviteCodes: Map<string, InviteCode> = new Map()
+const inviteCodes: Map<string, InviteCode> = new Map();
 
 export class GroupService {
-
-
   static async getUserGroups(userId: string): Promise<Groups[]> {
     try {
       const user = await Users.findOneOrFail({
@@ -51,21 +49,21 @@ export class GroupService {
   ): Promise<Groups> {
     try {
       const genres = await Genres.findBy({
-        id: In(genreIds)
+        id: In(genreIds),
       });
       console.log("Genres encontrados:", genres);
       if (genres.length !== genreIds.length) {
         throw new NotFoundException("Um ou mais gêneros são inválidos.");
       }
-  
+
       const group = Groups.create({
         name: groupData.name,
         description: groupData.description,
         genres: genres, // Adiciona os gêneros encontrados
       });
-  
+
       group.users = [loggedUser];
-  
+
       const newGroup = await Groups.save(group);
       return newGroup;
     } catch (error) {
@@ -74,17 +72,34 @@ export class GroupService {
     }
   }
 
+  static async getGroupGenres(groupId: string): Promise<Genres[]> {
+    try {
+      const group = await Groups.findOne({
+        where: { id: groupId },
+        relations: ["genres"],
+      });
+
+      if (!group) throw new NotFoundException("Grupo não encontrado.");
+
+      return group.genres;
+    } catch (error) {
+      console.error(error);
+      if (error instanceof NotFoundException) throw error;
+      throw new InternalException("Erro ao buscar gêneros do grupo.");
+    }
+  }
+
   static async deleteGroup(groupId: string, userId: string): Promise<void> {
     try {
       const group = await Groups.findOne({
         where: { id: groupId },
-        relations: ["users"]
+        relations: ["users"],
       });
-  
+
       if (!group) throw new NotFoundException("Grupo não encontrado.");
-  
-      group.users = group.users.filter(user => user.id !== userId);
-  
+
+      group.users = group.users.filter((user) => user.id !== userId);
+
       await group.save();
     } catch (error) {
       console.error(error);
@@ -107,27 +122,30 @@ export class GroupService {
       throw new InternalException("Erro ao consultar usuários do grupo.");
     }
   }
+
   static async updateGroup(
     groupId: string,
     groupData: Partial<Groups>,
-    genreId: number
+    genreIds: number[]
   ): Promise<Groups> {
     try {
       const group = await Groups.findOne({
         where: { id: groupId },
-        relations: ["genres"]
+        relations: ["genres"],
       });
-  
+
       if (!group) throw new NotFoundException("Grupo não encontrado.");
-  
-      if (genreId) {
-        const genre = await GenreServices.getGenreById(genreId);
-        if (!genre) throw new NotFoundException("Gênero inválido.");
-        group.genres = [genre];
+
+      if (genreIds && genreIds.length > 0) {
+        const genres = await Genres.findBy({ id: In(genreIds) });
+        if (genres.length !== genreIds.length) {
+          throw new NotFoundException("Um ou mais gêneros são inválidos.");
+        }
+        group.genres = genres;
       }
-  
+
       Object.assign(group, groupData);
-  
+
       const updatedGroup = await Groups.save(group);
       return updatedGroup;
     } catch (error) {
@@ -138,12 +156,12 @@ export class GroupService {
 
   private static generateAlphanumericCode(length = 6): string {
     return randomBytes(length)
-      .toString('base64')
+      .toString("base64")
       .substring(0, length)
-      .replace(/[+/=]/g, '');
+      .replace(/[+/=]/g, "");
   }
 
-  static createInviteCode(groupId: string, expirationTimeInSeconds: number){
+  static createInviteCode(groupId: string, expirationTimeInSeconds: number) {
     const inviteCode: InviteCode = {
       code: this.generateAlphanumericCode(),
       expiresAt: Date.now() + expirationTimeInSeconds * 1000,
@@ -154,41 +172,47 @@ export class GroupService {
 
   static validateIniviteCode(groupId: string, code: string): boolean {
     const inviteCode = inviteCodes.get(groupId);
-    if(inviteCode && inviteCode.code === code && Date.now() < inviteCode.expiresAt){
+    if (
+      inviteCode &&
+      inviteCode.code === code &&
+      Date.now() < inviteCode.expiresAt
+    ) {
       return true;
     }
-    if(Date.now() > inviteCode.expiresAt){
+    if (Date.now() > inviteCode.expiresAt) {
       inviteCodes.delete(groupId);
     }
     return false;
   }
-  
-  static async addUser(groupId: string, userId:string): Promise<void>{
-    try{
-      const group = await Groups.findOneOrFail({
-        where: { id: groupId},
-        relations: ["users"]
-      });
-      const user = await Users.findOneOrFail({ where: {id: userId}});
 
-      if(!group.users){
+  static async addUser(groupId: string, userId: string): Promise<void> {
+    try {
+      const group = await Groups.findOneOrFail({
+        where: { id: groupId },
+        relations: ["users"],
+      });
+      const user = await Users.findOneOrFail({ where: { id: userId } });
+
+      if (!group.users) {
         group.users = [];
       }
       group.users.push(user);
       await group.save();
-    } catch(error){
+    } catch (error) {
       console.error(error);
-      throw new InternalException("Erro ao adicionar usuario ao grupo")
+      throw new InternalException("Erro ao adicionar usuario ao grupo");
     }
   }
 
-  static async addUserWithInviteCode(groupId: string, userId: string, inviteCode: string): Promise<void>{
-
-       if(this.validateIniviteCode(groupId, inviteCode)){
-          await this.addUser(groupId, userId);
-        }
-        else{
-          throw new NotFoundException("Codigo de convite inválido ou expirado.");
-        }
+  static async addUserWithInviteCode(
+    groupId: string,
+    userId: string,
+    inviteCode: string
+  ): Promise<void> {
+    if (this.validateIniviteCode(groupId, inviteCode)) {
+      await this.addUser(groupId, userId);
+    } else {
+      throw new NotFoundException("Codigo de convite inválido ou expirado.");
+    }
   }
 }

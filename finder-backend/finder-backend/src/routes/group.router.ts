@@ -7,6 +7,7 @@ import * as jwt from "jsonwebtoken";
 import { Users } from "../models/user.model";
 import { Genres } from "../models/genre.model";
 import { In } from "typeorm";
+import { NotFoundException } from "../exceptions/exceptions";
 
 const groupRouter = express.Router();
 
@@ -85,14 +86,17 @@ groupRouter.post("/", protectedRoute, async (req: Request, res: Response) => {
   }
 });
 
-
 groupRouter.put("/:id", protectedRoute, async (req: Request, res: Response) => {
   const { id } = req.params;
-  const { name, description, genreId } = req.body;
+  const { name, description, genreIds } = req.body;
 
   try {
     const groupData: Partial<Groups> = { name, description };
-    const updatedGroup = await GroupService.updateGroup(id, groupData, genreId);
+    const updatedGroup = await GroupService.updateGroup(
+      id,
+      groupData,
+      genreIds
+    );
 
     return res.status(200).json({ group: updatedGroup });
   } catch (error) {
@@ -101,33 +105,37 @@ groupRouter.put("/:id", protectedRoute, async (req: Request, res: Response) => {
   }
 });
 
-groupRouter.delete("/:id/leave", protectedRoute, async (req: Request, res: Response) => {
-  const { id } = req.params;
-  const { authorization } = req.headers;
+groupRouter.delete(
+  "/:id/leave",
+  protectedRoute,
+  async (req: Request, res: Response) => {
+    const { id } = req.params;
+    const { authorization } = req.headers;
 
-  if (!authorization) {
-    return res.status(401).json({ message: "Token não fornecido" });
-  }
-
-  const token = authorization.split(" ")[1];
-
-  try {
-    const decoded = jwt.decode(token) as { email: string };
-    const loggedUserEmail = decoded.email;
-
-    const user = await Users.findOne({ where: { email: loggedUserEmail } });
-
-    if (!user) {
-      return res.status(401).json({ message: "Usuário não autorizado" });
+    if (!authorization) {
+      return res.status(401).json({ message: "Token não fornecido" });
     }
 
-    await GroupService.deleteGroup(id, user.id);
-    res.status(202).send({ message: "Usuário saiu do grupo com sucesso." });
-  } catch (error) {
-    console.error(error);
-    return res.status(500).send({ message: "Erro ao sair do grupo." });
+    const token = authorization.split(" ")[1];
+
+    try {
+      const decoded = jwt.decode(token) as { email: string };
+      const loggedUserEmail = decoded.email;
+
+      const user = await Users.findOne({ where: { email: loggedUserEmail } });
+
+      if (!user) {
+        return res.status(401).json({ message: "Usuário não autorizado" });
+      }
+
+      await GroupService.deleteGroup(id, user.id);
+      res.status(202).send({ message: "Usuário saiu do grupo com sucesso." });
+    } catch (error) {
+      console.error(error);
+      return res.status(500).send({ message: "Erro ao sair do grupo." });
+    }
   }
-});
+);
 
 groupRouter.get("/:groupId/users", async (req: Request, res: Response) => {
   const { groupId } = req.params;
@@ -141,54 +149,85 @@ groupRouter.get("/:groupId/users", async (req: Request, res: Response) => {
   }
 });
 
-groupRouter.post("/:groupId/invite", protectedRoute, async(req: Request, res: Response) => {
-  const { groupId } = req.params;
-  const { expirationTimeInSeconds } = req.body;
-  const { authorization } = req.headers;
-  
-  if(!authorization){
-    return res.status(401).json({ message: "Token não fornecido"});
-  }
-  
-  try{
-    const inviteCode = GroupService.createInviteCode(groupId, expirationTimeInSeconds);
-    res.json({ inviteCode });
-  }catch(error){
-    console.log(error);
-    res.status(500).json({ message: "Erro ao gerar código de convite"});
-  }
-});
+groupRouter.post(
+  "/:groupId/invite",
+  protectedRoute,
+  async (req: Request, res: Response) => {
+    const { groupId } = req.params;
+    const { expirationTimeInSeconds } = req.body;
+    const { authorization } = req.headers;
 
-
-groupRouter.post("/:groupId/join", protectedRoute, async (req: Request, res: Response) => {
-  const { groupId } = req.params;
-  const { inviteCode } = req.body;
-  const { authorization } = req.headers;
-
-  if(!authorization){
-    return res.status(401).json({ message: "Token não fornecido" });
-  }
-
-  const token = authorization.split(" ")[1];
-
-  try{
-    const decoded = jwt.decode(token) as { email: string};
-    const loggedUserEmail = decoded.email;
-
-    const user = await Users.findOne({ where: { email: loggedUserEmail}});
-
-    if(!user){
-      return res.status(401).json({ message: "Usuário não autorizado"});
+    if (!authorization) {
+      return res.status(401).json({ message: "Token não fornecido" });
     }
 
-    await GroupService.addUserWithInviteCode(groupId, user.id, inviteCode);
-
-    res.status(200).json({ message: "Usuário adicionado ao groupo com sucesso"});
-  } catch(error){
-    console.error(error);
-    res.status(500).json({ message: "Erro ao adicionar usuário ao grupo"})
+    try {
+      const inviteCode = GroupService.createInviteCode(
+        groupId,
+        expirationTimeInSeconds
+      );
+      res.json({ inviteCode });
+    } catch (error) {
+      console.log(error);
+      res.status(500).json({ message: "Erro ao gerar código de convite" });
+    }
   }
-})
+);
 
+groupRouter.post(
+  "/:groupId/join",
+  protectedRoute,
+  async (req: Request, res: Response) => {
+    const { groupId } = req.params;
+    const { inviteCode } = req.body;
+    const { authorization } = req.headers;
+
+    if (!authorization) {
+      return res.status(401).json({ message: "Token não fornecido" });
+    }
+
+    const token = authorization.split(" ")[1];
+
+    try {
+      const decoded = jwt.decode(token) as { email: string };
+      const loggedUserEmail = decoded.email;
+
+      const user = await Users.findOne({ where: { email: loggedUserEmail } });
+
+      if (!user) {
+        return res.status(401).json({ message: "Usuário não autorizado" });
+      }
+
+      await GroupService.addUserWithInviteCode(groupId, user.id, inviteCode);
+
+      res
+        .status(200)
+        .json({ message: "Usuário adicionado ao groupo com sucesso" });
+    } catch (error) {
+      console.error(error);
+      res.status(500).json({ message: "Erro ao adicionar usuário ao grupo" });
+    }
+  }
+);
+
+groupRouter.get(
+  "/:id/genres",
+  protectedRoute,
+  async (req: Request, res: Response) => {
+    const { id } = req.params;
+
+    try {
+      const genres = await GroupService.getGroupGenres(id);
+      res.status(200).json({ genres });
+    } catch (error) {
+      console.error(error);
+      if (error instanceof NotFoundException) {
+        res.status(404).json({ message: "Grupo não encontrado." });
+      } else {
+        res.status(500).json({ message: "Erro ao buscar gêneros do grupo." });
+      }
+    }
+  }
+);
 
 export default groupRouter;
