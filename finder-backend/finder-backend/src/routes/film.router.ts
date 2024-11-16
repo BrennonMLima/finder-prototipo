@@ -82,4 +82,43 @@ filmRouter.post("/:filmId/watched", async (req, res) => {
   }
 });
 
+filmRouter.get(
+  "/watched",
+  protectedRoute,
+  async (req: Request, res: Response) => {
+    const { authorization } = req.headers;
+
+    if (!authorization) {
+      return res.status(401).json({ message: "Token não fornecido" });
+    }
+
+    const token = authorization.split(" ")[1];
+
+    try {
+      // Decodifica o token para obter o e-mail do usuário logado
+      const decoded = jwt.decode(token) as { email: string };
+      const loggedUserEmail = decoded.email;
+
+      // Busca o usuário logado no banco
+      const loggedUser = await Users.findOne({
+        where: { email: loggedUserEmail },
+      });
+
+      if (!loggedUser) {
+        return res.status(401).json({ message: "Usuário não autorizado" });
+      }
+
+      // Usa o service para buscar os filmes assistidos
+      const watchedFilms = await FilmService.getWatchedFilms(loggedUser.id);
+
+      return res.status(200).json({ watchedFilms });
+    } catch (error) {
+      console.error(error);
+      return res
+        .status(500)
+        .json({ message: "Erro ao buscar filmes assistidos" });
+    }
+  }
+);
+
 export default filmRouter;

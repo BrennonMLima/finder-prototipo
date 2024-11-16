@@ -162,4 +162,23 @@ export class FilmService {
       throw new InternalException("Erro ao marcar filme como assistido.");
     }
   }
+
+  static async getWatchedFilms(userId: string): Promise<Films[]> {
+    try {
+      // Busca todos os registros onde o usuário assistiu o filme
+      const userFilms = await UserFilms.find({
+        where: {
+          user: { id: userId },
+          watched: true,
+        },
+        relations: ["film"], // Carrega os detalhes do filme
+      });
+
+      // Retorna apenas os filmes
+      return userFilms.map((userFilm) => userFilm.film);
+    } catch (error) {
+      console.error(error);
+      throw new InternalException("Erro ao buscar filmes assistidos.");
+    }
+  }
 }
