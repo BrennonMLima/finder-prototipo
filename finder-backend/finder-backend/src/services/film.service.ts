@@ -70,13 +70,23 @@ export class FilmService{
                 return newFilm
             }
             else{
-                const userFilm = UserFilms.create({
-                    user:loggedUser,
-                    watched : false,
-                    film: film,
-                    isVoted: isVoted
-                });
-                await UserFilms.save(userFilm);
+
+                const existingVote= await UserFilms.findOne({
+                    where: { 
+                        film: { id: filmData.id },
+                        user: { id: loggedUser.id}
+                    },
+                  });
+
+                if(!existingVote){
+                    const userFilm = UserFilms.create({
+                        user:loggedUser,
+                        watched : false,
+                        film: film,
+                        isVoted: isVoted
+                    });
+                    await UserFilms.save(userFilm);
+                }
             }
 
             
