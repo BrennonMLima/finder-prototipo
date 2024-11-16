@@ -38,7 +38,6 @@ export class FilmService{
             console.log(genreIds);
             if (!Array.isArray(genreIds) || genreIds.length === 0) { 
                 throw new Error("genreIds deve ser um array não vazio"); 
-
             }
             const genres = await Genres.findBy({
                 id: In(genreIds),
@@ -55,17 +54,32 @@ export class FilmService{
                 genres: genres
             });
 
-            const newFilm = await Films.save(film);
+            const existingFilm = await this.getFilmById(filmData.id);
 
-            const userFilm = UserFilms.create({
-                user:loggedUser,
-                watched : false,
-                film: newFilm,
-                isVoted: isVoted
-            });
-            await UserFilms.save(userFilm);
+            if(!existingFilm){
+                const newFilm = await Films.save(film);
+    
+                const userFilm = UserFilms.create({
+                    user:loggedUser,
+                    watched : false,
+                    film: newFilm,
+                    isVoted: isVoted
+                });
+                await UserFilms.save(userFilm);
+    
+                return newFilm
+            }
+            else{
+                const userFilm = UserFilms.create({
+                    user:loggedUser,
+                    watched : false,
+                    film: film,
+                    isVoted: isVoted
+                });
+                await UserFilms.save(userFilm);
+            }
 
-            return newFilm
+            
         }  catch(error){
             console.error(error);
             throw new InternalException(`Erro ao adicionar o filme`);
