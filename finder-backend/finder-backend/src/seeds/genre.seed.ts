@@ -1,4 +1,3 @@
-// genre.seed.ts
 import { Genres } from "../models/genre.model";
 import { GenreServices } from "../services/genre.service";
 
@@ -28,7 +27,7 @@ export async function seedGenres() {
   for (const genreData of genresSeedData) {
     const existingGenre = await Genres.findOneBy({ id: genreData.id });
     if (!existingGenre) {
-      const genre = await GenreServices.createGenre(genreData)
+      const genre = await GenreServices.createGenre(genreData);
       await genre.save();
     }
   }
