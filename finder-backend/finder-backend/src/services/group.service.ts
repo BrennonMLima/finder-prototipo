@@ -261,7 +261,7 @@ export class GroupService {
 
       const rankedFilms = Array.from(voteCounts.values())
         .sort((a, b) => b.votes - a.votes)
-        .slice(0, 10); // Pegar os 10 primeiros
+        .slice(0, 10);
 
       return rankedFilms;
     } catch (error) {
