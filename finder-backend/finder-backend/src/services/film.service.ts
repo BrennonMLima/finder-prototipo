@@ -53,8 +53,8 @@ export class FilmService{
                 description: filmData.description,
                 genres: genres
             });
-
-            const existingFilm = await this.getFilmById(filmData.id);
+            const existingFilm = await Films.findOneBy({id: filmData.id});
+            console.log(existingFilm);
 
             if(!existingFilm){
                 const newFilm = await Films.save(film);
