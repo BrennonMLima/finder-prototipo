@@ -6,6 +6,7 @@ import { Users } from "../models/user.model";
 import { UserFilms } from "../models/userfilm.model";
 import { Genres } from "../models/genre.model";
 import { Groups } from "../models/group.model";
+import { FilmRatings } from "../models/rating.model";
 
 export class FilmService {
   static async getAllFilms(): Promise<Films[]> {
@@ -165,7 +166,6 @@ export class FilmService {
 
   static async getWatchedFilms(userId: string): Promise<Films[]> {
     try {
-      // Busca todos os registros onde o usuário assistiu o filme
       const userFilms = await UserFilms.find({
         where: {
           user: { id: userId },
@@ -174,11 +174,65 @@ export class FilmService {
         relations: ["film"], // Carrega os detalhes do filme
       });
 
-      // Retorna apenas os filmes
       return userFilms.map((userFilm) => userFilm.film);
     } catch (error) {
       console.error(error);
       throw new InternalException("Erro ao buscar filmes assistidos.");
+    }
+  }
+
+  static async rateFilm(
+    userId: string,
+    filmId: string,
+    rating: number
+  ): Promise<FilmRatings> {
+    try {
+      const film = await Films.findOne({ where: { id: filmId } });
+      if (!film) {
+        throw new NotFoundException("Filme não encontrado.");
+      }
+
+      const user = await Users.findOne({ where: { id: userId } });
+      if (!user) {
+        throw new NotFoundException("Usuário não encontrado.");
+      }
+
+      let filmRating = await FilmRatings.findOne({
+        where: { user, film },
+      });
+
+      if (filmRating) {
+        filmRating.rating = rating;
+      } else {
+        filmRating = FilmRatings.create({
+          user,
+          film,
+          rating,
+        });
+      }
+
+      await FilmRatings.save(filmRating);
+
+      return filmRating;
+    } catch (error) {
+      console.error(error);
+      throw new InternalException("Erro ao avaliar o filme.");
+    }
+  }
+
+  static async getUserFilmRating(
+    userId: string,
+    filmId: string
+  ): Promise<FilmRatings | null> {
+    try {
+      const rating = await FilmRatings.findOne({
+        where: { user: { id: userId }, film: { id: filmId } },
+      });
+
+      return rating || null;
+    } catch (error) {
+      console.error(error);
+      throw new InternalException("Erro ao buscar avaliação do filme.");
     }
   }
 }
