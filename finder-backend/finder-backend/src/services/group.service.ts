@@ -222,7 +222,6 @@ export class GroupService {
     groupId: string
   ): Promise<{ film: Films; votes: number }[]> {
     try {
-      // Passo 1: Obter os gêneros do grupo
       const group = await Groups.findOne({
         where: { id: groupId },
         relations: ["genres", "users"],
@@ -232,7 +231,6 @@ export class GroupService {
 
       const groupGenres = group.genres.map((genre) => genre.id);
 
-      // Passo 2: Obter os filmes votados pelos membros do grupo
       const userIds = group.users.map((user) => user.id);
 
       const userFilms = await UserFilms.find({
@@ -246,12 +244,10 @@ export class GroupService {
         );
       }
 
-      // Passo 3: Filtrar e agrupar os filmes por gêneros do grupo
       const filteredFilms = userFilms.filter((userFilm) =>
         userFilm.film.genres.some((genre) => groupGenres.includes(genre.id))
       );
 
-      // Passo 4: Contar os votos de cada filme
       const voteCounts: Map<string, { film: Films; votes: number }> = new Map();
 
       filteredFilms.forEach((userFilm) => {
@@ -263,9 +259,8 @@ export class GroupService {
         current.votes += 1;
       });
 
-      // Passo 5: Criar um array com os 10 filmes mais votados
       const rankedFilms = Array.from(voteCounts.values())
-        .sort((a, b) => b.votes - a.votes) // Ordenar por votos em ordem decrescente
+        .sort((a, b) => b.votes - a.votes)
         .slice(0, 10); // Pegar os 10 primeiros
 
       return rankedFilms;
