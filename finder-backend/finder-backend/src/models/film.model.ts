@@ -19,7 +19,7 @@ export class Films extends BaseEntity {
   @Column()
   title: string;
 
-  @Column({ type: "varchar", length: 500 })
+  @Column({ type: "varchar", length: 1000 })
   description: string;
 
   @OneToMany(() => UserFilms, (userFilms) => userFilms.film)
