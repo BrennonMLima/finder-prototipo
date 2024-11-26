@@ -187,6 +187,25 @@ export class GroupService {
     return false;
   }
 
+  static getGroupIdByInviteCode(code: string): string | null {
+    for (const [groupId, inviteCode] of inviteCodes.entries()) {
+      if (inviteCode.code === code && Date.now() < inviteCode.expiresAt) {
+        return groupId;
+      }
+    }
+    return null;
+  }
+
+  static getValidIinviteVode(groupId: string): string | null {
+    const inviteCode = inviteCodes.get(groupId);
+
+    if(inviteCode && Date.now() < inviteCode.expiresAt){
+      return inviteCode.code;
+    }
+
+    return null;
+  }
+
   static async addUser(groupId: string, userId: string): Promise<void> {
     try {
       const group = await Groups.findOneOrFail({

@@ -154,14 +154,20 @@ groupRouter.post(
   protectedRoute,
   async (req: Request, res: Response) => {
     const { groupId } = req.params;
-    const { expirationTimeInSeconds } = req.body;
+    const  expirationTimeInSeconds = 3600;
     const { authorization } = req.headers;
 
     if (!authorization) {
       return res.status(401).json({ message: "Token não fornecido" });
     }
-
+    
     try {
+      const existingCode = GroupService.getValidIinviteVode(groupId);
+  
+      if(existingCode){
+        console.log(`o codigo ja existe e é ${existingCode}`);
+        return res.json({ inviteCode: existingCode});
+      }
       const inviteCode = GroupService.createInviteCode(
         groupId,
         expirationTimeInSeconds
@@ -173,6 +179,21 @@ groupRouter.post(
     }
   }
 );
+
+groupRouter.get("/groupId/:inviteCode", async (req: Request, res: Response) => {
+  const { inviteCode } = req.params;
+
+  try {
+    const groupId = GroupService.getGroupIdByInviteCode(inviteCode);
+    if (!groupId) {
+      return res.status(404).json({ message: "Código de convite inválido ou expirado." });
+    }
+    res.json({ groupId });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: "Erro ao buscar o ID do grupo." });
+  }
+});
 
 groupRouter.post(
   "/:groupId/join",
