@@ -3,47 +3,41 @@ import { Request, Response } from "express";
 import { UserService } from "../services/user.service";
 import protectedRoute from "../security/guard";
 import { UserDTO } from "../dto/user.dto";
+import { Users } from "../models/user.model";
+import * as jwt from "jsonwebtoken";
 
 const userRouter = express.Router();
 
 userRouter.get("/", protectedRoute, async (req: Request, res: Response) => {
-  try {
-    const users = await UserService.getAllUsers();
-    const usersDTO = users.map((user) => {
-      return {
-        email: user.email,
-        name: user.name,
-        createdAt: user.createdAt,
-        id: user.id,
-      };
-    }) as UserDTO[];
+  const { authorization } = req.headers;
 
-    return res.send({ users: usersDTO });
+  if (!authorization) {
+    return res.status(401).json({ message: "Token não fornecido" });
+  }
+
+  const token = authorization.split(" ")[1];
+
+  try {
+    const decoded = jwt.decode(token) as { id: string };
+    const loggedUserId = decoded.id;
+
+    const loggedUser = await UserService.getUserById(loggedUserId);
+
+    const userDTO = new UserDTO(
+      loggedUser.name,
+      loggedUser.email,
+      loggedUser.createdAt,
+      loggedUser.id,
+      loggedUser.profileImageId
+    );
+
+    return res.status(200).send({ user: userDTO });
   } catch (error) {
-    return res
-      .status(500)
-      .send({ message: "Erro ao consultar tabela de usuários." });
+    console.error(error);
+    return res.status(500).send({ message: "Erro ao buscar usuário logado." });
   }
 });
 
-userRouter.get("/:id", protectedRoute, async (req: Request, res: Response) => {
-  const { id } = req.params;
-  try {
-    const user = await UserService.getUserById(id);
-    const userDTO = {
-      email: user.email,
-      name: user.name,
-      createdAt: user.createdAt,
-      id: user.id,
-    } as UserDTO;
-
-    return res.send({ users: userDTO });
-  } catch (error) {
-    return res
-      .status(500)
-      .send({ message: "Erro ao consultar tabela de usuários." });
-  }
-});
 
 userRouter.get(
   "/:email",
@@ -73,18 +67,20 @@ userRouter.post("/", async (req: Request, res: Response) => {
 
   try {
     const user = await UserService.createUser(body);
-    const userDTO = {
-      email: user.email,
-      name: user.name,
-      createdAt: user.createdAt,
-      id: user.id,
-    } as UserDTO;
+    const userDTO = new UserDTO(
+      user.name,
+      user.email,
+      user.createdAt,
+      user.id,
+      user.profileImageId
+    );
 
     return res.status(201).send({ user: userDTO });
   } catch (error) {
-    return res.status(500).send({ message: "Erro ao criar usuário." });
+    return res.status(500).send({ message: "Erro ao criar usu�rio." });
   }
 });
+
 
 userRouter.delete(
   "/:id",
@@ -100,28 +96,89 @@ userRouter.delete(
   }
 );
 
-userRouter.put("/:id", protectedRoute, async (req: Request, res: Response) => {
-  const { id } = req.params;
-  const { name, email, password } = req.body;
+userRouter.put("/", protectedRoute, async (req: Request, res: Response) => {
+  const { authorization } = req.headers;
+  const { name, email, password, profileImageId } = req.body;
+
+  if (!authorization) {
+    return res.status(401).json({ message: "Token não fornecido" });
+  }
+
+  const token = authorization.split(" ")[1];
 
   try {
-    const updatedUser = await UserService.updateUser(id, {
+    const decoded = jwt.decode(token) as { id: string };
+    const loggedUser= decoded.id;
+
+    const updatedUser = await UserService.updateUser(loggedUser, {
       name,
       email,
       password,
+      profileImageId,
     });
-    const userDTO = {
-      email: updatedUser.email,
-      name: updatedUser.name,
-      createdAt: updatedUser.createdAt,
-      id: updatedUser.id,
-    } as UserDTO;
+
+    const userDTO = new UserDTO(
+      updatedUser.name,
+      updatedUser.email,
+      updatedUser.createdAt,
+      updatedUser.id,
+      updatedUser.profileImageId
+    );
 
     return res.status(200).send({ user: userDTO });
   } catch (error) {
     console.error(error);
-    return res.status(500).send({ message: "Erro ao atualizar usuário." });
+    return res.status(500).send({ message: "Erro ao atualizar usu�rio." });
   }
 });
+
+userRouter.put("/profile-image", async (req: Request, res: Response) => {
+  const { profileImageId } = req.body;
+  const { authorization } = req.headers;
+
+  if (!authorization) {
+    return res.status(401).json({ message: "Token não fornecido" });
+  }
+
+  const token = authorization.split(" ")[1];
+
+  try {
+    const decoded = jwt.decode(token) as { email: string };
+    const loggedUserEmail = decoded.email;
+
+    const loggedUser = await Users.findOne({
+      where: { email: loggedUserEmail },
+    });
+
+    if (!loggedUser) {
+      return res.status(401).json({ message: "Usuário não autorizado" });
+    }
+
+    if (!profileImageId) {
+      return res.status(400).json({ message: "ID da imagem de perfil é obrigatório." });
+    }
+
+    const updatedUser = await UserService.updateProfileImage(
+      loggedUser.id,
+      profileImageId
+    );
+
+    return res.status(200).json({
+      message: "Foto de perfil atualizada com sucesso!",
+      user: {
+        id: updatedUser.id,
+        email: updatedUser.email,
+        name: updatedUser.name,
+        createdAt: updatedUser.createdAt,
+        profileImageId: updatedUser.profileImageId,
+      },
+    });
+  } catch (error) {
+    console.error(error);
+    return res.status(500).json({ message: "Erro ao atualizar foto de perfil." });
+  }
+});
+
+
 
 export default userRouter;

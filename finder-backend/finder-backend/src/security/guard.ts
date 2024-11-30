@@ -6,6 +6,7 @@ export interface TokenPayload {
   email: string;
   createdAt: Date;
   id: string;
+  profileImageId: number,
   iat?: number;
   exp: number;
 }

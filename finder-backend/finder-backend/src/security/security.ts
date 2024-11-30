@@ -26,7 +26,8 @@ export class SecurityClass {
         user.name,
         user.email,
         user.createdAt,
-        user.id
+        user.id,
+        user.profileImageId
       );
       const isCorrectPassword = await this.verifyPassword(
         password,

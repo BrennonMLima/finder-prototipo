@@ -15,6 +15,9 @@ export class Users extends BaseModel {
   @Column()
   password: string;
 
+  @Column({ nullable: true })
+  profileImageId: number;
+
   @OneToMany(() => UserFilms, (userFilms) => userFilms.user)
   userFilms: UserFilms[];
 
