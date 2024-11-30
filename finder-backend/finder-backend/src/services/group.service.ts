@@ -257,11 +257,11 @@ export class GroupService {
         relations: ["film", "film.genres"],
       });
 
-      if (userFilms.length === 0) {
-        throw new NotFoundException(
-          "Nenhum filme votado pelos membros do grupo."
-        );
-      }
+      // if (userFilms.length === 0) {
+      //   throw new NotFoundException(
+      //     "Nenhum filme votado pelos membros do grupo."
+      //   );
+      // }
 
       const filteredFilms = userFilms.filter((userFilm) =>
         userFilm.film.genres.some((genre) => groupGenres.includes(genre.id))

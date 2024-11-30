@@ -98,6 +98,29 @@ export class UserService {
     }
   }
 
+  static async changeUserPassword(
+    userId: string,
+    userPassword: string,
+    newPassword: string
+  ): Promise<Users> {
+    try{
+      const user = await Users.findOneBy({id: userId});
+
+      const isMatch = await SecurityClass.verifyPassword(userPassword, user.password);
+      if(!isMatch){
+        throw new NotFoundException("Senha atual incorreta");
+      }
+
+      user.password = await SecurityClass.encryptUserPassword(newPassword);
+      await user.save();
+
+      return user;
+    } catch(error){
+      if(error instanceof NotFoundException) throw error;
+      throw new InternalException("Erro ao mudar a senha");
+    }
+  }
+
   static async updateProfileImage(userId: string, profileImageId: number): Promise<Users> {
     try {
       const user = await Users.findOneBy({ id: userId });

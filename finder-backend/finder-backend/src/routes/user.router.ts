@@ -132,6 +132,31 @@ userRouter.put("/", protectedRoute, async (req: Request, res: Response) => {
   }
 });
 
+userRouter.put("/changePassword", protectedRoute, async (req: Request, res: Response) => {
+  const { authorization } = req.headers;
+  const { currentPassword, newPassword } = req.body;
+
+  if (!authorization) {
+    return res.status(401).json({ message: "Token não fornecido" });
+  }
+
+  const token = authorization.split(" ")[1];
+
+  try{
+    const decoded = jwt.decode(token) as { id: string };
+    const loggedUser= decoded.id;
+
+    await UserService.changeUserPassword(loggedUser, currentPassword, newPassword);
+
+    return res.status(200).json({ message: "Senha alterada com sucesso"});
+  }catch(error){
+    console.log(error);
+    return res.status(500).send({ message: "Erro ao alterar a senha"});
+  }
+
+  
+})
+
 userRouter.put("/profile-image", async (req: Request, res: Response) => {
   const { profileImageId } = req.body;
   const { authorization } = req.headers;
