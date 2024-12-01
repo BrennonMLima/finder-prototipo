@@ -100,6 +100,8 @@ userRouter.put("/", protectedRoute, async (req: Request, res: Response) => {
   const { authorization } = req.headers;
   const { name, email, password, profileImageId } = req.body;
 
+  console.log('Dados recebidos no backendeee:', name);
+
   if (!authorization) {
     return res.status(401).json({ message: "Token não fornecido" });
   }
@@ -111,10 +113,7 @@ userRouter.put("/", protectedRoute, async (req: Request, res: Response) => {
     const loggedUser= decoded.id;
 
     const updatedUser = await UserService.updateUser(loggedUser, {
-      name,
-      email,
-      password,
-      profileImageId,
+      name
     });
 
     const userDTO = new UserDTO(
