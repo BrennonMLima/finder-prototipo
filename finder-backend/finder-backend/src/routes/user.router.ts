@@ -100,7 +100,7 @@ userRouter.put("/", protectedRoute, async (req: Request, res: Response) => {
   const { authorization } = req.headers;
   const { name, email, password, profileImageId } = req.body;
 
-  console.log('Dados recebidos no backendeee:', name);
+  console.log('Dados recebidos no backend:', name);
 
   if (!authorization) {
     return res.status(401).json({ message: "Token não fornecido" });
@@ -145,15 +145,17 @@ userRouter.put("/changePassword", protectedRoute, async (req: Request, res: Resp
     const decoded = jwt.decode(token) as { id: string };
     const loggedUser= decoded.id;
 
+
     await UserService.changeUserPassword(loggedUser, currentPassword, newPassword);
 
     return res.status(200).json({ message: "Senha alterada com sucesso"});
   }catch(error){
+    if(error.message === "Senha atual incorreta"){
+      return res.status(400).send({ message: "Senha atual incorreta"})
+    }
     console.log(error);
     return res.status(500).send({ message: "Erro ao alterar a senha"});
   }
-
-  
 })
 
 userRouter.put("/profile-image", async (req: Request, res: Response) => {
